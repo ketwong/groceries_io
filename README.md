@@ -69,3 +69,8 @@ Running the application on `0.0.0.0` makes it accessible on all network interfac
 ## Author
 Ket Wong
 
+## History
+
+v1 
+![image](https://github.com/ketwong/groceries_io/assets/42503376/d1151277-9707-4142-979a-7d791c25667c)
+
