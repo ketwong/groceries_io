@@ -23,7 +23,7 @@ This project is a web-based application that allows users to upload an image and
 ### Installing Dependencies
 Install the required Python packages using pip:
 ```bash
-pip install flask requests openai 
+pip install flask requests openai Pillow
 ```
 
 ### Environment Variables
