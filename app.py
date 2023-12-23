@@ -4,7 +4,7 @@ import base64
 import requests
 import logging
 import socket
-from PIL import Image
+from PIL import Image, ImageOps
 import io
 import time
 
@@ -42,18 +42,21 @@ def get_size_in_mb(file_storage):
     file_storage.seek(0)  # Seek back to the start of the file
     return size
 
-def resize_image(image, max_size=(800, 600), quality=85):
+from PIL import Image, ImageOps
+
+def resize_image(image, max_size=(400, 300), quality=70):
     """
-    Resize and compress the image.
+    Resize and compress the image more aggressively.
     :param image: Image file.
     :param max_size: Maximum width and height.
-    :param quality: Quality of the resized image.
+    :param quality: Quality of the resized image, lower means more compression.
     :return: Resized and compressed image.
     """
     im = Image.open(image)
-    im.thumbnail(max_size)
+    im = ImageOps.exif_transpose(im)  # Correct the orientation if needed
+    im.thumbnail(max_size, Image.Resampling.LANCZOS)  # Resize the image
     buffer = io.BytesIO()
-    im.save(buffer, format='JPEG', quality=quality)
+    im.save(buffer, format='JPEG', quality=quality)  # Compress the image
     buffer.seek(0)
     return buffer
 
