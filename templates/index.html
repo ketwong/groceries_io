@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .upload-form {
+            margin-bottom: 30px;
+        }
+        .upload-form input[type="file"] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        .upload-form button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .upload-form button:hover {
+            background-color: #45a049;
+        }
+        #image-preview {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        #result {
+            font-size: 1em;
+            color: #333;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+        }
+        #loading, #processing {
+            color: #007bff;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>groceries_io</h2>
+        <form id="upload-form" class="upload-form" method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" id="image-input">
+            <button type="submit">Upload Image</button>
+        </form>
+        <div id="preview-container">
+            <img id="image-preview" style="display: none;">
+        </div>
+        <div id="loading" style="display: none;">Uploading...</div>
+        <div id="processing" style="display: none;">Processing...</div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('loading').style.display = 'block';
+            var formData = new FormData(this);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => response.json())
+              .then(data => {
+                  document.getElementById('loading').style.display = 'none';
+                  document.getElementById('processing').style.display = 'block';
+
+                  setTimeout(() => {
+                      document.getElementById('processing').style.display = 'none';
+                      document.getElementById('result').textContent = 'Result: ' + data.content;
+                  }, 1000);
+              }).catch(error => {
+                  document.getElementById('loading').style.display = 'none';
+                  document.getElementById('processing').style.display = 'none';
+                  console.error('Error:', error);
+                  document.getElementById('result').textContent = 'Error: ' + error;
+              });
+        });
+
+        document.getElementById('image-input').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = document.getElementById('image-preview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
