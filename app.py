@@ -4,6 +4,8 @@ import base64
 import requests
 import logging
 import socket
+from PIL import Image
+import io
 
 app = Flask(__name__)
 
@@ -30,6 +32,21 @@ def test_openai_api_reachability():
 
 test_openai_api_reachability()
 
+def resize_image(image, max_size=(800, 600), quality=85):
+    """
+    Resize and compress the image.
+    :param image: Image file.
+    :param max_size: Maximum width and height.
+    :param quality: Quality of the resized image.
+    :return: Resized and compressed image.
+    """
+    im = Image.open(image)
+    im.thumbnail(max_size)
+    buffer = io.BytesIO()
+    im.save(buffer, format='JPEG', quality=quality)
+    buffer.seek(0)
+    return buffer
+
 @app.route('/')
 def index():
     app.logger.info('Rendering index page')
@@ -50,12 +67,15 @@ def upload_file():
 
     if file and allowed_file(file.filename):
         app.logger.info('Valid image received for processing')
-        base64_image = base64.b64encode(file.read()).decode('utf-8')
-        app.logger.info('Image encoded to base64')
+
+        # Resize and compress image
+        resized_image = resize_image(file, max_size=(800, 600), quality=85)
+        base64_image = base64.b64encode(resized_image.read()).decode('utf-8')
+        app.logger.info('Image resized, compressed, and encoded to base64')
+
         content = call_vision_api(base64_image)
         app.logger.info('Received response from vision API')
         app.logger.info('The result: ' + content)
-        app.logger.info('Valid image received for processing')
         app.logger.info('END - Job completed')
         return jsonify({'content': content})
     else:
