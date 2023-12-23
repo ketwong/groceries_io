@@ -32,6 +32,15 @@ def test_openai_api_reachability():
 
 test_openai_api_reachability()
 
+def get_size_in_mb(file_storage):
+    """
+    Calculate the size of an uploaded file in megabytes.
+    """
+    file_storage.seek(0, os.SEEK_END)  # Go to the end of the file
+    size = file_storage.tell() / (1024 * 1024)  # Get the size in MB
+    file_storage.seek(0)  # Seek back to the start of the file
+    return size
+
 def resize_image(image, max_size=(800, 600), quality=85):
     """
     Resize and compress the image.
@@ -68,8 +77,21 @@ def upload_file():
     if file and allowed_file(file.filename):
         app.logger.info('Valid image received for processing')
 
+        # Calculate the original image size in MB
+        file.seek(0, os.SEEK_END)  # Go to the end of the file
+        original_size = file.tell() / (1024 * 1024)  # Get the size in MB
+        file.seek(0)  # Seek back to the start of the file
+        app.logger.info(f'Original image size: {original_size:.2f} MB')
+
         # Resize and compress image
         resized_image = resize_image(file, max_size=(800, 600), quality=85)
+
+        # Calculate the resized image size in MB
+        resized_image.seek(0, os.SEEK_END)  # Go to the end of the file
+        resized_size = resized_image.tell() / (1024 * 1024)  # Get the size in MB
+        resized_image.seek(0)  # Seek back to the start of the file
+        app.logger.info(f'Resized image size: {resized_size:.2f} MB')
+
         base64_image = base64.b64encode(resized_image.read()).decode('utf-8')
         app.logger.info('Image resized, compressed, and encoded to base64')
 
