@@ -65,6 +65,10 @@ def index():
     app.logger.info('Rendering index page')
     return render_template('index.html')
 
+@app.route('/dev')
+def test():
+    return render_template('dev.html')
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     start_time = time.time()  # Start time measurement
@@ -135,7 +139,7 @@ def call_vision_api(base64_image):
           "content": [
             {
               "type": "text",
-              "text": "Determine what is in the image with the object name only, i.e. 'Banana', 'Orange', 'Bread' etc... focus the object located at the center at all times."
+              "text": "Determine what is in the image, how many objects in the image in numbers? name of the object i.e. 'Banana', 'Orange', 'Bread' etc... focus the object located at the center at all times. The result should output as <number>, <objectName> or example like 1, Car"
             },
             {
               "type": "image_url",
