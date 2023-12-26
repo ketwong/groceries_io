@@ -11,21 +11,30 @@
     <title>groceries_io</title>
     <!-- Link to external stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Additional styles for toggle switch -->
 </head>
 <body>
     <div class="container">
         <h2>groceries_io - Image Recognition Tool</h2>
+        <div id="inventory-controls">
+            <label class="switch">
+                <input type="checkbox" id="inventory-toggle">
+                <span class="slider round"></span>
+            </label>
+            <span id="inventory-status">In</span> <!-- This will display the current action -->
+        </div>
+        <div id="preview-container">
+            <img id="image-preview" style="display: none;">
+            <div id="recognized-object" style="display: none;"></div>
+        </div>
         <form id="upload-form" class="upload-form" method="post" enctype="multipart/form-data">
             <input type="file" name="image" accept="image/*" id="image-input">
             <button type="submit">Upload Image</button>
         </form>
-        <div id="preview-container">
-            <img id="image-preview" style="display: none;">
-        </div>
         <div id="loading" style="display: none;">Uploading...</div>
         <div id="processing" style="display: none;">Processing...</div>
         <div id="result"></div>
-    </div>
+    </div>    
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

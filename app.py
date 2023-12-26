@@ -14,8 +14,36 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance/results.db')
 db = SQLAlchemy(app)
 
-# Setup logging with time and date format
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+# Logging configuration function
+def configure_logging():
+    # Configure the basic parameters for logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.StreamHandler()  # Log to stderr (default)
+        ]
+    )
+
+    # You can also add additional handlers if needed, e.g., for logging to a file:
+    # file_handler = logging.FileHandler('app.log')
+    # file_handler.setFormatter(logging.Formatter(
+    #     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    # ))
+    # logging.getLogger().addHandler(file_handler)
+
+# Call the function to configure logging
+configure_logging()
+
+logger = logging.getLogger()
+
+# API key verification
+def verify_api_key():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        logging.error("OpenAI API key is missing or not set in the environment.")
+        exit(1)
 
 # Check API Key
 api_key = os.environ.get("OPENAI_API_KEY")
@@ -43,10 +71,12 @@ class ImageResult(db.Model):
     object_name = db.Column(db.String(80), nullable=False)
 
     def __repr__(self):
-        return f'<ImageResult {self.count}, {self.object_name}>'
+        return f'<ImageResult {self.id} {self.count} {self.object_name}>'
 
-with app.app_context():
-    db.create_all()
+# Initialize the app and create tables
+def initialize_app():
+    with app.app_context():
+        db.create_all()
 
 def get_size_in_mb(file_storage):
     """
@@ -75,42 +105,43 @@ def resize_image(image, max_size=(400, 300), quality=70):
     buffer.seek(0)
     return buffer
 
+# Route handlers
 @app.route('/')
 def index():
-    app.logger.info('Rendering index page')
+    logger.info('Rendering index page')
     return render_template('index.html')
 
 @app.route('/dev')
-def test():
+def dev():
     return render_template('dev.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
     start_time = time.time()  # Start time measurement
 
-    app.logger.info('START - Received upload request')
+    logger.info('START - Received upload request')
 
     if 'image' not in request.files:
         app.logger.error('No image part in the request')
         elapsed_time = time.time() - start_time
-        app.logger.info(f'Job ended with errors in {elapsed_time:.2f} seconds')
+        logger.info(f'Job ended with errors in {elapsed_time:.2f} seconds')
         return jsonify({'error': 'No file part'}), 400
 
     file = request.files['image']
     if file.filename == '':
         app.logger.error('No selected file')
         elapsed_time = time.time() - start_time
-        app.logger.info(f'Job ended with errors in {elapsed_time:.2f} seconds')
+        logger.info(f'Job ended with errors in {elapsed_time:.2f} seconds')
         return jsonify({'error': 'No selected file'}), 400
 
     if file and allowed_file(file.filename):
-        app.logger.info('Valid image received for processing')
+        logger.info('Valid image received for processing')
 
         # Calculate the original image size in MB
         file.seek(0, os.SEEK_END)
         original_size = file.tell() / (1024 * 1024)
         file.seek(0)
-        app.logger.info(f'Original image size: {original_size:.2f} MB')
+        logger.info(f'Original image size: {original_size:.2f} MB')
 
         # Resize and compress image
         resized_image = resize_image(file, max_size=(800, 600), quality=85)
@@ -119,22 +150,22 @@ def upload_file():
         resized_image.seek(0, os.SEEK_END)
         resized_size = resized_image.tell() / (1024 * 1024)
         resized_image.seek(0)
-        app.logger.info(f'Resized image size: {resized_size:.2f} MB')
+        logger.info(f'Resized image size: {resized_size:.2f} MB')
 
         base64_image = base64.b64encode(resized_image.read()).decode('utf-8')
-        app.logger.info('Image resized, compressed, and encoded to base64')
+        logger.info('Image resized, compressed, and encoded to base64')
 
         content = call_vision_api(base64_image)
-        app.logger.info('Received response from vision API')
-        app.logger.info('The result: ' + content)
+        logger.info('Received response from vision API')
+        logger.info('The result: ' + content)
 
         elapsed_time = time.time() - start_time
-        app.logger.info(f'END - Job completed in {elapsed_time:.2f} seconds')
+        logger.info(f'END - Job completed in {elapsed_time:.2f} seconds')
         return jsonify({'content': content})
     else:
         app.logger.error('Invalid file type')
         elapsed_time = time.time() - start_time
-        app.logger.info(f'Job ended with errors in {elapsed_time:.2f} seconds')
+        logger.info(f'Job ended with errors in {elapsed_time:.2f} seconds')
         return jsonify({'error': 'Invalid file type'}), 400
 
 def allowed_file(filename):
@@ -173,7 +204,7 @@ def call_vision_api(base64_image):
 
 @app.route('/submit-result', methods=['POST'])
 def submit_result():
-    app.logger.info(f'Received data for submit-result: {request.json}')
+    logger.info(f'Received data for submit-result: {request.json}')
     if not request.json or 'count' not in request.json or 'object_name' not in request.json:
         abort(400)
 
@@ -216,9 +247,66 @@ def delete_result(result_id):
     db.session.commit()
     return jsonify({'message': f'Record with id {result_id} deleted successfully'})
 
+@app.route('/decrease-result', methods=['PATCH'])
+def decrease_result():
+    data = request.get_json()
+    if not data or 'count' not in data or 'object_name' not in data:
+        abort(400)
+
+    item = ImageResult.query.filter_by(object_name=data['object_name']).first()
+    if item:
+        item.count -= data['count']
+        if item.count <= 0:
+            db.session.delete(item)
+    db.session.commit()
+    return jsonify({'message': 'Updated successfully'}), 200
+
+@app.route('/update-inventory', methods=['POST'])
+def update_inventory():
+    data = request.get_json()
+    print(f"Received action: {data.get('action')}, object_name: {data.get('object_name')}")
+    
+    if not data or 'object_name' not in data or 'action' not in data:
+        abort(400, description="Missing 'object_name' or 'action' in the request")
+
+    object_name = data['object_name']
+    action = data['action']
+
+    # Corrected logging format
+    logger.info(f'Inventory update request: Action - {action.upper()}, Object Name - {object_name}')
+
+    # Query the database for the existing inventory item
+    inventory_item = ImageResult.query.filter_by(object_name=object_name).first()
+
+    if inventory_item:
+        if action == 'in':
+            inventory_item.count += 1
+            message = f'Increased count for {object_name}. New count: {inventory_item.count}'
+        elif action == 'out':
+            decrease_amount = 2  # Set the decrease amount to 2
+            if inventory_item.count >= decrease_amount:
+                inventory_item.count -= decrease_amount
+                message = f'Decreased count for {object_name}. New count: {inventory_item.count}'
+            else:
+                message = f'Cannot decrease count for {object_name}. Insufficient items in inventory.'
+    else:
+        if action == 'in':
+            inventory_item = ImageResult(count=1, object_name=object_name)
+            db.session.add(inventory_item)
+            message = f'Added to inventory: {object_name} with count: 1'
+        elif action == 'out':
+            message = f'Cannot remove from inventory: {object_name} does not exist.'
+
+    db.session.commit()
+    return jsonify({'message': message}), 200
+
 @app.errorhandler(400)
-def bad_request(error):
+def handle_bad_request(error):
     return jsonify({'error': 'Bad request'}), 400
 
 if __name__ == '__main__':
+    configure_logging()
+    verify_api_key()
+    test_openai_api_reachability()
+    initialize_app()
     app.run(debug=True)
