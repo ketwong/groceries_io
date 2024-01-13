@@ -1,4 +1,4 @@
-# groceries_io - Image Recognition Web Application
+# groceries_io - Image Recognition Web Application 
 
 ## Overview
 This project is a web-based application that allows users to upload an image and receive information about its contents using an AI-powered image recognition service. It's designed for users on the same local network to access the application via a web browser.
@@ -7,10 +7,12 @@ This project is a web-based application that allows users to upload an image and
 - Image Upload: Users can upload images using a simple interface.
 - Image Recognition: The application uses OpenAI's image recognition API to analyze the uploaded images.
 - Result Display: After processing, the application displays the recognition results on the web page.
+- Swagger API Documentation: Interactive API documentation using Swagger.
 
 ## Technology Stack
 - **Frontend**: HTML, CSS, JavaScript
 - **Backend**: Flask (Python)
+- **API Documentation**: Swagger (Flasgger)
 - **AI Service**: OpenAI API
 
 ## Setup and Installation
@@ -18,6 +20,7 @@ This project is a web-based application that allows users to upload an image and
 ### Prerequisites
 - Python 3.x
 - Flask
+- Flasgger
 - Requests library
 - Pillow library
 - OpenAI library
@@ -25,7 +28,7 @@ This project is a web-based application that allows users to upload an image and
 ### Installing Dependencies
 Install the required Python packages using pip:
 ```bash
-pip install flask requests openai Pillow Flask-SQLAlchemy
+pip install flask requests openai Pillow flasgger Flask-SQLAlchemy
 ```
 
 ### Environment Variables

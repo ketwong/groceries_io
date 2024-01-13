@@ -8,11 +8,13 @@ from PIL import Image, ImageOps
 import io
 import time
 from flask_sqlalchemy import SQLAlchemy
+from flasgger import Swagger
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance/results.db')
 db = SQLAlchemy(app)
+swagger = Swagger(app)
 
 # Setup logging with time and date format
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -86,6 +88,23 @@ def test():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    """
+    file upload
+    ---
+    tags:
+        - image processing
+    consumes:
+        - multipart/form-data
+    parameters:
+        - in: formData
+          name: image
+          type: file
+          required: true
+          description: The image to upload.
+    responses:
+        200:
+            description: Successful response
+    """
     start_time = time.time()  # Start time measurement
 
     app.logger.info('START - Received upload request')
@@ -124,13 +143,30 @@ def upload_file():
         base64_image = base64.b64encode(resized_image.read()).decode('utf-8')
         app.logger.info('Image resized, compressed, and encoded to base64')
 
-        content = call_vision_api(base64_image)
+        api_response = call_vision_api(base64_image)
         app.logger.info('Received response from vision API')
-        app.logger.info('The result: ' + content)
+        app.logger.info('The result: ' + api_response)
+
+        # Parse the API response
+        try:
+            amount, grocery_item = api_response.split(', ')
+            amount = int(amount)  # Convert amount to an integer
+        except ValueError:
+            app.logger.error('Error parsing the API response')
+            return jsonify({'error': 'Error parsing the API response'}), 500
+
+        # Structured output
+        structured_output = {
+            "amount": amount,
+            "groceryItem": grocery_item
+        }
+
+        app.logger.info(f'Processed Output: {structured_output}')
 
         elapsed_time = time.time() - start_time
         app.logger.info(f'END - Job completed in {elapsed_time:.2f} seconds')
-        return jsonify({'content': content})
+
+        return jsonify(structured_output)
     else:
         app.logger.error('Invalid file type')
         elapsed_time = time.time() - start_time
