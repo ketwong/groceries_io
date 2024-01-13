@@ -154,6 +154,12 @@ def upload_file():
         except ValueError:
             app.logger.error('Error parsing the API response')
             return jsonify({'error': 'Error parsing the API response'}), 500
+        
+        # Add result to the database
+        new_result = ImageResult(count=amount, object_name=grocery_item)
+        db.session.add(new_result)
+        db.session.commit()
+        app.logger.info(f'Added new entry for {grocery_item} with count: {amount}')
 
         # Structured output
         structured_output = {
@@ -207,54 +213,114 @@ def call_vision_api(base64_image):
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     return response.json()['choices'][0]['message']['content']
 
-@app.route('/submit-result', methods=['POST'])
-def submit_result():
-    app.logger.info(f'Received data for submit-result: {request.json}')
-    if not request.json or 'count' not in request.json or 'object_name' not in request.json:
-        abort(400)
+@app.route('/get-result', methods=['GET'])
+def get_result():
+    """
+    Retrieve a result or all results from the database
+    ---
+    tags:
+      - results
+    parameters:
+      - in: query
+        name: id
+        type: integer
+        required: false
+        description: The ID of the specific result to retrieve
+    responses:
+      200:
+        description: A list of results or a single result
+      404:
+        description: Not found (if no result is found with the given ID)
+    """
+    result_id = request.args.get('id')
 
-    object_name = request.json['object_name']
-    new_count = request.json['count']
-
-    # Check if an entry with the same object name already exists
-    existing_result = ImageResult.query.filter_by(object_name=object_name).first()
-    
-    if existing_result:
-        # Increment the count of the existing entry
-        existing_result.count += new_count
-        message = f'Updated count for {object_name}. New count: {existing_result.count}'
+    if result_id:
+        # Retrieve a specific result by ID
+        result = ImageResult.query.get(result_id)
+        if result:
+            return jsonify({'id': result.id, 'count': result.count, 'object_name': result.object_name})
+        else:
+            return jsonify({'error': 'Result not found'}), 404
     else:
-        # Create a new entry
-        new_result = ImageResult(count=new_count, object_name=object_name)
-        db.session.add(new_result)
-        message = f'Added new entry for {object_name} with count: {new_count}'
+        # Retrieve all results
+        results = ImageResult.query.all()
+        results_data = [{'id': result.id, 'count': result.count, 'object_name': result.object_name} for result in results]
+        return jsonify(results_data)
 
-    db.session.commit()
-    return jsonify({'message': message}), 200
-
-@app.route('/results')
-def get_results():
-    results = ImageResult.query.all()
-    return render_template('results.html', results=results)
-
-@app.route('/results/<int:result_id>', methods=['PUT'])
+@app.route('/update-result/<int:result_id>', methods=['PUT'])
 def update_result(result_id):
-    result = ImageResult.query.get_or_404(result_id)
-    result.count = request.json.get('count', result.count)
-    result.object_name = request.json.get('object_name', result.object_name)
+    """
+    Update a result in the database
+    ---
+    tags:
+      - results
+    parameters:
+      - in: path
+        name: result_id
+        type: integer
+        required: true
+        description: The ID of the result to update
+      - in: body
+        name: body
+        required: true
+        schema:
+          id: Result
+          required:
+            - count
+            - object_name
+          properties:
+            count:
+              type: integer
+              description: The updated count
+            object_name:
+              type: string
+              description: The updated object name
+    responses:
+      200:
+        description: Result updated successfully
+      404:
+        description: Not found (if no result is found with the given ID)
+    """
+    result = ImageResult.query.get(result_id)
+    if not result:
+        return jsonify({'error': 'Result not found'}), 404
+
+    data = request.get_json()  # Fetch the JSON data from the request
+
+    if 'count' in data:
+        result.count = data['count']
+    if 'object_name' in data:
+        result.object_name = data['object_name']
+
     db.session.commit()
     return jsonify({'message': 'Updated successfully'})
 
 @app.route('/delete-result/<int:result_id>', methods=['DELETE'])
 def delete_result(result_id):
-    result = ImageResult.query.get_or_404(result_id)
+    """
+    Delete a result from the database
+    ---
+    tags:
+      - results
+    parameters:
+      - in: path
+        name: result_id
+        type: integer
+        required: true
+        description: The ID of the result to delete
+    responses:
+      200:
+        description: Result deleted successfully
+      404:
+        description: Not found (if no result is found with the given ID)
+    """
+    result = ImageResult.query.get(result_id)
+    if not result:
+        return jsonify({'error': 'Result not found'}), 404
+
     db.session.delete(result)
     db.session.commit()
     return jsonify({'message': f'Record with id {result_id} deleted successfully'})
-
-@app.errorhandler(400)
-def bad_request(error):
-    return jsonify({'error': 'Bad request'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
