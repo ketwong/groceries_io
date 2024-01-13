@@ -13,7 +13,8 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
 
           setTimeout(() => {
               document.getElementById('processing').style.display = 'none';
-              document.getElementById('result').textContent = 'Result: ' + data.content;
+              // Update this line to display amount and groceryItem
+              document.getElementById('result').textContent = 'Result: ' + data.amount + ', ' + data.groceryItem;
           }, 1000);
       }).catch(error => {
           document.getElementById('loading').style.display = 'none';
