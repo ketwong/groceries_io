@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, abort
+from flask import Flask, request, render_template, jsonify
 import os
 import base64
 import requests
@@ -7,12 +7,8 @@ import socket
 from PIL import Image, ImageOps
 import io
 import time
-from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance/results.db')
-db = SQLAlchemy(app)
 
 # Setup logging with time and date format
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -36,17 +32,6 @@ def test_openai_api_reachability():
         return False
 
 test_openai_api_reachability()
-
-class ImageResult(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    count = db.Column(db.Integer, nullable=False)
-    object_name = db.Column(db.String(80), nullable=False)
-
-    def __repr__(self):
-        return f'<ImageResult {self.count}, {self.object_name}>'
-
-with app.app_context():
-    db.create_all()
 
 def get_size_in_mb(file_storage):
     """
@@ -170,55 +155,6 @@ def call_vision_api(base64_image):
     }
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     return response.json()['choices'][0]['message']['content']
-
-@app.route('/submit-result', methods=['POST'])
-def submit_result():
-    app.logger.info(f'Received data for submit-result: {request.json}')
-    if not request.json or 'count' not in request.json or 'object_name' not in request.json:
-        abort(400)
-
-    object_name = request.json['object_name']
-    new_count = request.json['count']
-
-    # Check if an entry with the same object name already exists
-    existing_result = ImageResult.query.filter_by(object_name=object_name).first()
-    
-    if existing_result:
-        # Increment the count of the existing entry
-        existing_result.count += new_count
-        message = f'Updated count for {object_name}. New count: {existing_result.count}'
-    else:
-        # Create a new entry
-        new_result = ImageResult(count=new_count, object_name=object_name)
-        db.session.add(new_result)
-        message = f'Added new entry for {object_name} with count: {new_count}'
-
-    db.session.commit()
-    return jsonify({'message': message}), 200
-
-@app.route('/results')
-def get_results():
-    results = ImageResult.query.all()
-    return render_template('results.html', results=results)
-
-@app.route('/results/<int:result_id>', methods=['PUT'])
-def update_result(result_id):
-    result = ImageResult.query.get_or_404(result_id)
-    result.count = request.json.get('count', result.count)
-    result.object_name = request.json.get('object_name', result.object_name)
-    db.session.commit()
-    return jsonify({'message': 'Updated successfully'})
-
-@app.route('/delete-result/<int:result_id>', methods=['DELETE'])
-def delete_result(result_id):
-    result = ImageResult.query.get_or_404(result_id)
-    db.session.delete(result)
-    db.session.commit()
-    return jsonify({'message': f'Record with id {result_id} deleted successfully'})
-
-@app.errorhandler(400)
-def bad_request(error):
-    return jsonify({'error': 'Bad request'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
