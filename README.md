@@ -22,11 +22,13 @@ This project is a web-based application that allows users to upload an image and
 - Flask
 - Flasgger
 - Requests library
+- Pillow library
+- OpenAI library
 
 ### Installing Dependencies
 Install the required Python packages using pip:
 ```bash
-pip install flask requests openai Pillow flasgger
+pip install flask requests openai Pillow flasgger Flask-SQLAlchemy
 ```
 
 ### Environment Variables
@@ -56,7 +58,73 @@ To access the application from other devices on the same network:
    ```bash
    flask run --host=0.0.0.0
    ```
-2. On other devices, enter the IP address of the host machine followed by `:5000` in a web browser.
+
+2. On other devices, enter the IP address of the host machine followed by :5000 in a web browser.
+# Interacting with the Database
+
+Full swagger API integration with GET, DELETE, POST & PUT.
+
+```
+http://localhost:5000/apidocs/
+```
+![image](https://github.com/ketwong/groceries_io/assets/42503376/170c12a0-0ff0-47e6-99ac-ec2d56bfc897)
+
+## Updating the Database
+Use HTTP requests to update or delete data:
+
+- To update a record, send a PUT request to `/update-result/<result_id>` with the new data.
+- To delete a record, send a DELETE request to `/delete-result/<result_id>`.
+
+**DELETE DB Entry:**
+```powershell
+PS C:\Users\dev> Invoke-WebRequest -Uri "http://localhost:5000/delete-result/2" -Method DELETE
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"message":"Record with id 2 deleted successfully"}
+
+RawContent        : HTTP/1.1 200 OK
+                    Connection: close
+                    Content-Length: 52
+                    Content-Type: application/json
+                    Date: Mon, 25 Dec 2023 18:56:38 GMT
+                    Server: Werkzeug/3.0.1 Python/3.12.1
+
+                    {"message":"Record with id 2 deleted successfully"}
+```
+
+**UPDATE DB Entry:**
+```powershell
+$uri = 'http://localhost:5000/update-result/1' # Replace with the correct URI and ID
+$body = @{
+    count = 3
+    object_name = 'Car'
+} | ConvertTo-Json
+
+Invoke-WebRequest -Uri $uri -Method PUT -Body $body -ContentType "application/json"
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"message":"Updated successfully"}
+
+RawContent        : HTTP/1.1 200 OK
+                    Connection: close
+                    Content-Length: 35
+                    Content-Type: application/json
+                    Date: Mon, 25 Dec 2023 19:15:58 GMT
+                    Server: Werkzeug/3.0.1 Python/3.12.1
+
+                    {"message":"Updated successfully"}
+                    ...
+Forms             : {}
+Headers           : {[Connection, close], [Content-Length, 35], [Content-Type, application/json], [Date, Mon, 25 Dec
+                    2023 19:15:58 GMT]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : System.__ComObject
+RawContentLength  : 35
+```
 
 ## Security Note
 Running the application on `0.0.0.0` makes it accessible on all network interfaces. Ensure your network is secure and avoid exposing sensitive information.
@@ -65,6 +133,7 @@ Running the application on `0.0.0.0` makes it accessible on all network interfac
 - Improve UI/UX design.
 - Implement additional error handling and input validation.
 - Explore deployment options for broader access.
+- Enhance the database functionality to track and manage image recognition results more efficiently.
 
 ## License
 [MIT License](LICENSE)
