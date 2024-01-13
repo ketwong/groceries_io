@@ -67,6 +67,7 @@ Full swagger API integration with GET, DELETE, POST & PUT.
 ```
 http://localhost:5000/apidocs/
 ```
+![image](https://github.com/ketwong/groceries_io/assets/42503376/170c12a0-0ff0-47e6-99ac-ec2d56bfc897)
 
 ## Updating the Database
 Use HTTP requests to update or delete data:
