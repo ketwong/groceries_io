@@ -322,5 +322,6 @@ def delete_result(result_id):
     db.session.commit()
     return jsonify({'message': f'Record with id {result_id} deleted successfully'})
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000, debug=True)
+

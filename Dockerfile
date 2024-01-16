@@ -10,12 +10,12 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create an instance folder and a results.db file
+RUN mkdir -p /app/instance
+RUN touch /app/instance/results.db
+
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
-
-# Define environment variable
-# You can set environment variables here if needed. For example:
-# ENV NAME=Value
 
 # Run app.py when the container launches
 CMD ["python", "./app.py"]
