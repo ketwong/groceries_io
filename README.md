@@ -15,6 +15,14 @@ This project is a web-based application that allows users to upload an image and
 - **API Documentation**: Swagger (Flasgger)
 - **AI Service**: OpenAI API
 
+## Quick start - Running the Application Using Docker 
+
+You can easily run the application using Docker without needing to build the image yourself. Simply pull the image from Docker Hub and run it using the following command:
+
+```bash
+docker run -p 5000:5000 -e OPENAI_API_KEY="<api key>" k3tt3k/groceries_io_app
+```
+
 ## Setup and Installation
 
 ### Prerequisites
@@ -126,8 +134,43 @@ ParsedHtml        : System.__ComObject
 RawContentLength  : 35
 ```
 
+## Docker Support
+
+### Building the Docker Image
+To build a Docker image for this application, use the following command:
+```bash
+docker build -t groceries_io_app .
+```
+
+### Running the Application in a Docker Container
+To run the application inside a Docker container, use:
+```
+docker run -p 5000:5000 -e OPENAI_API_KEY="your_api_key_here" groceries_io_app
+```
+
+### Accessing the Application
+Once the Docker container is running, access the application through http://localhost:5000 in your web browser.
+
+### Uploading the Image to Docker Hub
+After building your Docker image, you can upload it to Docker Hub:
+```
+docker tag groceries_io_app <yourusername>/groceries_io_app:latest
+```
+Push your image to Docker Hub:
+```
+docker push yourusername/groceries_io_app:latest
+```
+
+Replace yourusername with your Docker Hub username. Use the `docker login` command to log in to Docker Hub before pushing the image.
+
 ## Security Note
 Running the application on `0.0.0.0` makes it accessible on all network interfaces. Ensure your network is secure and avoid exposing sensitive information.
+
+## Security Note for Docker
+When running the application in a Docker container, ensure that only necessary ports are exposed and use secure environment variable management for API keys and other sensitive data.
+
+Remember to replace `"your_api_key_here"` with the actual OpenAI API key and `yourusername` with your Docker Hub username. This update provides instructions on how to build, run, and distribute the Docker image of your web application.
+
 
 ## Future Enhancements
 - Improve UI/UX design.
