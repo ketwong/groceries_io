@@ -1,0 +1,6 @@
+flask
+requests
+openai
+Pillow
+flasgger
+Flask-SQLAlchemy
